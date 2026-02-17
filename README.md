@@ -20,20 +20,27 @@ docker run --rm ghcr.io/coolcow/openvpn-client --help
 docker run --rm -it \
   --cap-add=NET_ADMIN \
   --device /dev/net/tun \
-  -v /path/to/client.ovpn:/home/client.ovpn:ro \
+  -e OPENVPN_UID=$(id -u) \
+  -e OPENVPN_GID=$(id -g) \
+  -v /path/to/openvpn-home:/home/openvpn \
+  -v /path/to/client.ovpn:/home/openvpn/client.ovpn:ro \
   ghcr.io/coolcow/openvpn-client \
-  --config /home/client.ovpn
+  --config /home/openvpn/client.ovpn
 ```
 
 ### Optional Runtime Environment Variables
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `PUID` | _(unset)_ | Optional: if set (or if `PGID` is set), run via `su-exec` as that UID. |
-| `PGID` | _(unset)_ | Optional: if set (or if `PUID` is set), run via `su-exec` as that GID. |
-| `ENTRYPOINT_USER` | `openvpn` | Internal user name for optional su-exec mode. |
-| `ENTRYPOINT_GROUP` | `openvpn` | Internal group name for optional su-exec mode. |
-| `ENTRYPOINT_HOME` | `/home` | Working directory in the container. |
+| Variable | Default | Target | Description |
+| --- | --- | --- | --- |
+| `OPENVPN_UID` | `1000` | `TARGET_UID` | User ID to run `openvpn` as. |
+| `OPENVPN_GID` | `1000` | `TARGET_GID` | Group ID to run `openvpn` as. |
+| `OPENVPN_REMAP_IDS` | `1` | `TARGET_REMAP_IDS` | Set `0` to disable remapping conflicting UID/GID entries. |
+| `OPENVPN_USER` | `openvpn` | `TARGET_USER` | Runtime user name inside the container. |
+| `OPENVPN_GROUP` | `openvpn` | `TARGET_GROUP` | Runtime group name inside the container. |
+| `OPENVPN_HOME` | `/home/openvpn` | `TARGET_HOME` | Home directory used by `openvpn` and as default workdir. |
+| `OPENVPN_SHELL` | `/bin/sh` | `TARGET_SHELL` | Login shell for the runtime user. |
+
+`Target` shows the corresponding variable used by `coolcow/entrypoints`.
 
 ---
 
@@ -46,7 +53,21 @@ Customize the image at build time with `docker build --build-arg <KEY>=<VALUE>`.
 | Argument | Default | Description |
 | --- | --- | --- |
 | `ALPINE_VERSION` | `3.23.3` | Version of the Alpine base image. |
-| `ENTRYPOINTS_VERSION` | `2.0.0` | Version of the `coolcow/entrypoints` image used for scripts. |
+| `ENTRYPOINTS_VERSION` | `2.2.0` | Version of the `coolcow/entrypoints` image used for scripts. |
+
+---
+
+## Migration Notes
+
+Runtime user/group environment variables were renamed to image-specific `OPENVPN_*` names.
+
+- `PUID` → `OPENVPN_UID`
+- `PGID` → `OPENVPN_GID`
+- `ENTRYPOINT_USER` → `OPENVPN_USER`
+- `ENTRYPOINT_GROUP` → `OPENVPN_GROUP`
+- `ENTRYPOINT_HOME` → `OPENVPN_HOME`
+
+Update your `docker run` / `docker-compose` environment configuration accordingly when upgrading from older tags.
 
 ---
 
